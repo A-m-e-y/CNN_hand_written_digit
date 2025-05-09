@@ -10,13 +10,17 @@ class Dense:
         self.last_input = None
         self.last_output = None
 
+    def sw_dot(self, A, B, C):
+        return np.dot(A, B) + C
+    
     def forward(self, x):
         """
         x shape: (batch_size, input_size)
         Returns: (batch_size, output_size)
         """
         self.last_input = x
-        output = np.dot(x, self.weights) + self.biases
+        # output = np.dot(x, self.weights) + self.biases
+        output = self.sw_dot(x, self.weights, self.biases)
         self.last_output = output
         return output
 

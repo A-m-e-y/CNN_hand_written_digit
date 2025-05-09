@@ -11,6 +11,7 @@ testSet/
 trainingSample/
 trainingSet/
 trained_model.pkl
+infer_profile.prof
 
 # C extensions
 *.so

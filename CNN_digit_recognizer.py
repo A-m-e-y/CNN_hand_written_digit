@@ -11,7 +11,7 @@ IMG_SIZE = 28
 NUM_CLASSES = 10
 DATA_DIR = "./trainingSample/trainingSample"
 MODEL_FILE = "trained_model.pkl"
-EPOCHS = 5
+EPOCHS = 2
 LR = 0.01
 BATCH_SIZE = 10
 
