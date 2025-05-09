@@ -1,4 +1,5 @@
 import os
+os.environ["OMP_NUM_THREADS"] = "10"
 import sys
 import numpy as np
 from PIL import Image
@@ -8,7 +9,7 @@ import pickle
 # Configuration
 IMG_SIZE = 28
 NUM_CLASSES = 10
-DATA_DIR = "./data"
+DATA_DIR = "./trainingSample/trainingSample"
 MODEL_FILE = "trained_model.pkl"
 EPOCHS = 5
 LR = 0.01
@@ -25,10 +26,13 @@ def load_data(data_dir):
             if fname.endswith(".jpg"):
                 img_path = os.path.join(folder, fname)
                 img = Image.open(img_path).convert('L')
-                img = img.resize((IMG_SIZE, IMG_SIZE))
+                # img = img.resize((IMG_SIZE, IMG_SIZE))
                 arr = np.array(img) / 255.0
                 X.append(arr)
                 y.append(label)
+    
+    X = X[:len(X)//2]
+    y = y[:len(y)//2]
     X = np.array(X).reshape(-1, 1, IMG_SIZE, IMG_SIZE)
     y = np.array(y)
     return X, y

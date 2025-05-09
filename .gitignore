@@ -10,6 +10,7 @@ testSample/
 testSet/
 trainingSample/
 trainingSet/
+trained_model.pkl
 
 # C extensions
 *.so
