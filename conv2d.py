@@ -1,5 +1,5 @@
 import numpy as np
-import numpy as np
+from matrix_hw_wrapper import matrix_mul_hw
 
 class Conv2D:
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
@@ -72,7 +72,8 @@ class Conv2D:
         B = self.weights.reshape(self.out_channels, -1).T  # Shape: (K, out_channels)
 
         # Multiply
-        C = self.matrix_mul_sw(A, B)  # Shape: (batch_size * out_h * out_w, out_channels)
+        # C = self.matrix_mul_sw(A, B)  # Shape: (batch_size * out_h * out_w, out_channels)
+        C = matrix_mul_hw(A, B)  # Shape: (batch_size * out_h * out_w, out_channels)
 
         # Add bias
         C = self.matrix_add_bias(C, self.biases)  # shape: (M, N)

@@ -12,6 +12,8 @@ trainingSample/
 trainingSet/
 trained_model.pkl
 infer_profile.prof
+obj_dir/
+sim_build/
 
 # C extensions
 *.so
