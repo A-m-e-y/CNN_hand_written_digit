@@ -1,9 +1,9 @@
 `timescale 1ns/1ps
 
 module MatrixMulEngine #(
-    parameter MAX_M = 1024,
-    parameter MAX_K = 1024,
-    parameter MAX_N = 1024,
+    parameter MAX_M = 100,
+    parameter MAX_K = 100,
+    parameter MAX_N = 100,
     parameter ADDR_M_BITS = $clog2(MAX_M),
     parameter ADDR_K_BITS = $clog2(MAX_K),
     parameter ADDR_N_BITS = $clog2(MAX_N),

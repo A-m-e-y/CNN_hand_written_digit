@@ -3,7 +3,7 @@ import pstats
 import sys
 
 # Set the path to your image here
-IMAGE_PATH = "trainingSet/trainingSet/5/img_8.jpg"
+IMAGE_PATH = "../Generate_Modified_Images/Images_240x240/0.jpg"
 
 # Import your model script (assuming infer is a top-level function)
 from CNN_digit_recognizer import *

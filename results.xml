@@ -1,6 +1,0 @@
-<testsuites name="results">
-  <testsuite name="all" package="all">
-    <property name="random_seed" value="1746849404" />
-    <testcase name="matrix_mul_test" classname="test_matrix_mul" file="/mnt/d/PSU/HW_For_AI_teuscher/CNN_hand_written_digit/test_matrix_mul.py" lineno="6" time="4731.5206027030945" sim_time_ns="291020840.001" ratio_time="61506.83140526561" />
-  </testsuite>
-</testsuites>

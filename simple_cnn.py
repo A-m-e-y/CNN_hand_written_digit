@@ -5,6 +5,7 @@ from flatten import Flatten
 from relu_softmax import ReLU, Softmax
 
 NUM_CLASSES = 10
+IMG_SIZE = 240
 
 class SimpleCNN:
     def __init__(self):
@@ -22,7 +23,7 @@ class SimpleCNN:
 
         # Flatten and Dense
         self.flatten = Flatten()
-        self.dense1 = Dense(input_size=64 * 28 * 28, output_size=128)
+        self.dense1 = Dense(input_size=64 * IMG_SIZE * IMG_SIZE, output_size=128)
         self.relu_fc = ReLU()
         self.dense2 = Dense(input_size=128, output_size=NUM_CLASSES)
         self.softmax = Softmax()

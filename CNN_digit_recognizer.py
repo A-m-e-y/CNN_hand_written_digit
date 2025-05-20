@@ -7,13 +7,13 @@ from simple_cnn import SimpleCNN
 import pickle
 
 # Configuration
-IMG_SIZE = 28
+IMG_SIZE = 240
 NUM_CLASSES = 10
-DATA_DIR = "./trainingSample/trainingSample"
+DATA_DIR = "../Generate_Modified_Images/Dataset_240x240/"
 MODEL_FILE = "trained_model.pkl"
 EPOCHS = 2
 LR = 0.01
-BATCH_SIZE = 10
+BATCH_SIZE = 5
 
 def load_data(data_dir):
     X = []
@@ -54,6 +54,7 @@ def train():
 
     model = SimpleCNN()
 
+    print("Training model...")
     for epoch in range(EPOCHS):
         permutation = np.random.permutation(len(X))
         X_shuffled, y_shuffled = X[permutation], y_onehot[permutation]
@@ -82,7 +83,7 @@ def infer(image_path):
     model.load(MODEL_FILE)
 
     img = Image.open(image_path).convert('L')
-    img = img.resize((IMG_SIZE, IMG_SIZE))
+    # img = img.resize((IMG_SIZE, IMG_SIZE))
     arr = np.array(img) / 255.0
     x = arr.reshape(1, 1, IMG_SIZE, IMG_SIZE)
 
@@ -93,15 +94,15 @@ def infer(image_path):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  python run_cnn.py train")
-        print("  python run_cnn.py infer path_to_image.jpg")
+        print("  python CNN_digit_recognizer.py train")
+        print("  python CNN_digit_recognizer.py infer path_to_image.jpg")
         sys.exit(1)
 
     if sys.argv[1] == "train":
         train()
     elif sys.argv[1] == "infer":
         if len(sys.argv) != 3:
-            print("Usage: python run_cnn.py infer path_to_image.jpg")
+            print("Usage: python CNN_digit_recognizer.py infer path_to_image.jpg")
             sys.exit(1)
         infer(sys.argv[2])
     else:
