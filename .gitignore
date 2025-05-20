@@ -15,6 +15,8 @@ infer_profile.prof
 obj_dir/
 sim_build/
 Vivado_RTL_Project*/
+input_buffer.txt
+output_buffer.txt
 
 # C extensions
 *.so
