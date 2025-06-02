@@ -7,9 +7,9 @@ from simple_cnn import SimpleCNN
 import pickle
 
 # Configuration
-IMG_SIZE = 240
+IMG_SIZE = 24
 NUM_CLASSES = 10
-DATA_DIR = "../Generate_Modified_Images/Dataset_240x240/"
+DATA_DIR = "../Generate_Modified_Images/Dataset_24x24/"
 MODEL_FILE = "trained_model.pkl"
 EPOCHS = 1
 LR = 0.01

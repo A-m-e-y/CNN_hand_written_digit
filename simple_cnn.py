@@ -5,7 +5,7 @@ from flatten import Flatten
 from relu_softmax import ReLU, Softmax
 
 NUM_CLASSES = 10
-IMG_SIZE = 240
+IMG_SIZE = 24
 
 class SimpleCNN:
     def __init__(self):
