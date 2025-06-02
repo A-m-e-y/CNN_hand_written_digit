@@ -11,9 +11,9 @@ IMG_SIZE = 240
 NUM_CLASSES = 10
 DATA_DIR = "../Generate_Modified_Images/Dataset_240x240/"
 MODEL_FILE = "trained_model.pkl"
-EPOCHS = 2
+EPOCHS = 1
 LR = 0.01
-BATCH_SIZE = 5
+BATCH_SIZE = 1
 
 def load_data(data_dir):
     X = []
@@ -26,13 +26,15 @@ def load_data(data_dir):
             if fname.endswith(".jpg"):
                 img_path = os.path.join(folder, fname)
                 img = Image.open(img_path).convert('L')
-                # img = img.resize((IMG_SIZE, IMG_SIZE))
+                img = img.resize((IMG_SIZE, IMG_SIZE))
                 arr = np.array(img) / 255.0
                 X.append(arr)
                 y.append(label)
     
-    X = X[:len(X)//2]
-    y = y[:len(y)//2]
+    X = X[:len(X)//4]
+    y = y[:len(y)//4]
+    # X = X[0]
+    # y = y[0]
     X = np.array(X).reshape(-1, 1, IMG_SIZE, IMG_SIZE)
     y = np.array(y)
     return X, y
@@ -83,7 +85,7 @@ def infer(image_path):
     model.load(MODEL_FILE)
 
     img = Image.open(image_path).convert('L')
-    # img = img.resize((IMG_SIZE, IMG_SIZE))
+    img = img.resize((IMG_SIZE, IMG_SIZE))
     arr = np.array(img) / 255.0
     x = arr.reshape(1, 1, IMG_SIZE, IMG_SIZE)
 

@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 # Amey
+*.txt
 archive*.zip
 *.tar.gz
 testSample/
