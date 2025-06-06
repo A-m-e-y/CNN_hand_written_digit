@@ -1,7 +1,7 @@
 module MatrixMul_top #(
-    parameter MAX_M       = 100,
-    parameter MAX_K       = 100,
-    parameter MAX_N       = 100
+    parameter MAX_M = 784, // Maximum number of rows in matrix A
+    parameter MAX_K = 288,   // Maximum number of columns in matrix A / rows in matrix B
+    parameter MAX_N = 64    // Maximum number of columns in matrix B
 ) (
     input  wire                   clk,
     input  wire                   rst_n,
@@ -11,12 +11,14 @@ module MatrixMul_top #(
     input  wire [ $clog2(MAX_K):0 ] K_in,
     input  wire [ $clog2(MAX_N):0 ] N_in,
 
-    // serial data in
-    input  wire [31:0]            Serial_in,
-    input  wire [1:0]             mode,      // 00=idle, 01=load A, 10=load B, 11=finish
+    // SPI interface
+    input sclk,
+    input mosi,
+    input cs_n,
+    output miso,
 
-    output reg [31:0]            Serial_out,
-    output reg active,
+    input send_c,
+    output reg mul_done,
     output reg done
 );
     
@@ -24,23 +26,27 @@ module MatrixMul_top #(
     wire [31:0] matrix_A [0:MAX_M*MAX_K-1];
     wire [31:0] matrix_B [0:MAX_K*MAX_N-1];
     wire [31:0] matrix_C [0:MAX_M*MAX_N-1];
-    wire sipo_done, mul_done;
+    wire A_loaded, B_loaded;
 
-    SIPO_MatrixRegs #(
+    reg [15:0] c_size; // Size of matrix C, calculated as M * N
+
+    assign c_size = M_in * N_in;
+
+    spi_matrix_loader #(
         .MAX_M(MAX_M),
         .MAX_K(MAX_K),
         .MAX_N(MAX_N)
-    ) sipo (
+    ) spi_loader (
         .clk(clk),
         .rst_n(rst_n),
-        .M_in(M_in),
-        .K_in(K_in),
-        .N_in(N_in),
-        .Serial_in(Serial_in),
-        .mode(mode),
+        .sclk(sclk), // Assuming Serial_in[0] is SCLK
+        .mosi(mosi), // Assuming Serial_in[1] is MOSI
+        .cs_n(cs_n), // Assuming Serial_in[2] is CS_N
+        // .miso(miso),   // MISO output
         .matrix_A(matrix_A),
         .matrix_B(matrix_B),
-        .done(sipo_done)
+        .matrix_A_ready(A_loaded), // Ready signal for matrix A
+        .matrix_B_ready(B_loaded)   // Ready signal for matrix B
     );
 
     MatrixMulEngine #(
@@ -50,7 +56,7 @@ module MatrixMul_top #(
     ) m_mul (
         .clk(clk),
         .rst_n(rst_n),
-        .start(sipo_done),
+        .start(A_loaded && B_loaded),
         .done(mul_done),
         .M_val(M_in),
         .K_val(K_in),
@@ -60,18 +66,20 @@ module MatrixMul_top #(
         .matrix_C(matrix_C)
     );
 
-    PISO_MatrixRegs #(
+    spi_matrix_sender #(
         .MAX_M(MAX_M),
-        .MAX_K(MAX_K),
         .MAX_N(MAX_N)
-    ) piso (
+    ) spi_sender (
         .clk(clk),
         .rst_n(rst_n),
-        .start(mul_done),
+        .C_size(c_size), // Assuming C_size is M * N
+        .sclk(sclk), // Assuming Serial_in[0] is SCLK
+        // .mosi(mosi), // Assuming Serial_in[1] is MOSI
+        .miso(miso), // MISO output
+        .cs_n(cs_n), // Assuming Serial_in[2] is CS_N
+        .start_tx(send_c),
         .matrix_C(matrix_C),
-        .Serial_out(Serial_out),
-        .active(active),
-        .done(done)
+        .done_tx(done)
     );
 
 endmodule
