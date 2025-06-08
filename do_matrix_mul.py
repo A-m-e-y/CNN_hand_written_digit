@@ -1,5 +1,5 @@
 import numpy as np
-from matrix_mul_hw_wrapper import matrix_mul_hw  # Ensure this module exists and is in the same directory or PYTHONPATH
+from matrix_hw_wrapper import matrix_mul_hw  # Ensure this module exists and is in the same directory or PYTHONPATH
 
 def main():
     # Define test matrices A (M x K) and B (K x N)
