@@ -59,10 +59,11 @@ async def matrixmul_spi_test(dut):
     for word in A_flat:
         await spi_send_word(dut, float_to_hex(word))
 
-    for _ in range(200000):
+    while True:
+        # Wait for A to be loaded
         await RisingEdge(dut.clk)
         if dut.A_loaded.value.integer == 1:
-            dut._log.info("Matrix A loaded.")
+            dut._log.info(f"Matrix A loaded: {dut.M_in.value.integer}x{dut.K_in.value.integer}")
             break
 
     # for i, val in enumerate(B_flat):
@@ -73,15 +74,15 @@ async def matrixmul_spi_test(dut):
     for word in B_flat:
         await spi_send_word(dut, float_to_hex(word))
 
-    for _ in range(200000):
+    while True:
         await RisingEdge(dut.clk)
         if dut.B_loaded.value.integer == 1:
-            dut._log.info("Matrix B loaded.")
+            dut._log.info(f"Matrix B loaded: {dut.K_in.value.integer}x{dut.N_in.value.integer}")
             break
 
     # --- Wait for matrix multiplication to complete ---
     dut._log.info("Waiting for mul_done...")
-    for _ in range(200000):
+    while True:
         await RisingEdge(dut.clk)
         if dut.mul_done.value.integer == 1:
             dut._log.info("Matrix multiplication complete.")
@@ -100,6 +101,8 @@ async def matrixmul_spi_test(dut):
 
     with open("output_buffer.txt", "w") as f:
         f.write("C " + " ".join(map(str, received_C)) + "\n")
+
+    dut._log.info(f"Received matrix C: {dut.M_in.value.integer}x{dut.N_in.value.integer}")
 
 # --- SPI helpers ---
 async def spi_send_word(dut, data):
