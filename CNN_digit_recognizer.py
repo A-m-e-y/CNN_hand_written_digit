@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image
 from simple_cnn import SimpleCNN
 import pickle
+import conv2d
 
 # Configuration
 IMG_SIZE = 28
@@ -101,11 +102,13 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if sys.argv[1] == "train":
+        conv2d.MODE = "train"
         train()
     elif sys.argv[1] == "infer":
         if len(sys.argv) != 3:
             print("Usage: python CNN_digit_recognizer.py infer path_to_image.jpg")
             sys.exit(1)
+        conv2d.MODE = "infer"
         infer(sys.argv[2])
     else:
         print(f"Unknown command: {sys.argv[1]}")
