@@ -8,9 +8,9 @@ import pickle
 import conv2d
 
 # Configuration
-IMG_SIZE = 28
+IMG_SIZE = 10
 NUM_CLASSES = 10
-DATA_DIR = "../Generate_Modified_Images/Dataset_28x28/"
+DATA_DIR = "../Generate_Modified_Images/Dataset_10x10/"
 MODEL_FILE = "trained_model.pkl"
 EPOCHS = 1
 LR = 0.01

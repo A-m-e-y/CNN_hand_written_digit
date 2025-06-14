@@ -1,7 +1,7 @@
 module MatrixMul_top #(
-    parameter MAX_M = 784, // Maximum number of rows in matrix A
-    parameter MAX_K = 288,   // Maximum number of columns in matrix A / rows in matrix B
-    parameter MAX_N = 64    // Maximum number of columns in matrix B
+    parameter MAX_M = 10, // Maximum number of rows in matrix A
+    parameter MAX_K = 10,   // Maximum number of columns in matrix A / rows in matrix B
+    parameter MAX_N = 10    // Maximum number of columns in matrix B
 ) (
     input  wire                   clk,
     input  wire                   rst_n,

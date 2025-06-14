@@ -35,19 +35,9 @@ This project demonstrates a hybrid software/hardware approach to CNN-based handw
 
 ## High-Level Architecture
 
-```
-+--------------------+      SPI (via cocotb)      +---------------------+
-|   Python (NumPy)   | <----------------------->  |   Verilog RTL Core  |
-|  CNN + Driver Code |                            |  (MatrixMul Engine) |
-+--------------------+                            +---------------------+
-         |                                                 |
-         | 1. Prepares matrices (A, B)                     |
-         | 2. Sends over SPI (simulated)                   |
-         | 3. Waits for result (C)                         |
-         | 4. Receives C over SPI                          |
-         |                                                 |
-         +----------------- cocotb testbench --------------+
-```
+<div align="center">
+  <img src="Resources/Project_Architecture.png" alt="Project Architecture" style="max-width: 100%; height: auto; resize: both; overflow: auto;">
+</div>
 
 ---
 
@@ -245,16 +235,10 @@ The CNN is implemented from scratch using NumPy, with the following layers:
 
 ### Prerequisites
 
-- Python 3.x with NumPy, PIL, cocotb, etc.
+- Python 3.x with NumPy, PIL (Pillow), cocotb, etc.
 - Icarus Verilog (for simulation)
 - cocotb (for Python-driven simulation)
 - Make
-
-### Running Matrix Multiplication (Python ↔ Verilog)
-
-1. Prepare your matrices in Python.
-2. Call `matrix_mul_hw(A, B)` from Python.
-3. The hardware simulation will run automatically and return the result.
 
 ### Training and Inference
 
@@ -262,10 +246,17 @@ The CNN is implemented from scratch using NumPy, with the following layers:
   ```
   python CNN_digit_recognizer.py train
   ```
+  - Training requiers Image Dataset to be specified in the variable `DATA_DIR`.
+  - Few sample datasets are given under directory `Datasets`.
+  - Point to the desired image size Dataset within this folder depending on the availble compute resources.
+  - Users can add extra images for training and inference under this directoy.
+  - Users need to maintain the directoy structure.
 - **Inference**:
   ```
   python CNN_digit_recognizer.py infer path_to_image.jpg
   ```
+- While training, script will automatically use the CPU for Matrix Multiplication.
+- While inference, script will automatically use the HW simulation via cocotb for Matrix Multiplication.
 
 ### Standalone Matrix Test
 

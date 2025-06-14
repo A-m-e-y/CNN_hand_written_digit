@@ -12,10 +12,13 @@ testSet/
 trainingSample/
 trainingSet/
 trained_model.pkl
-infer_profile.prof
 obj_dir/
 sim_build/
-Vivado_RTL_Project*/
+Vivado_RTL_Project_1/Vivado_RTL_Project_1.cache/
+Vivado_RTL_Project_1/Vivado_RTL_Project_1.hw/
+Vivado_RTL_Project_1/Vivado_RTL_Project_1.ip*/
+Vivado_RTL_Project_1/Vivado_RTL_Project_1.sim/
+Vivado_RTL_Project_1/Vivado_RTL_Project_1.runs/
 input_buffer.txt
 output_buffer.txt
 
@@ -72,7 +75,6 @@ cover/
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal

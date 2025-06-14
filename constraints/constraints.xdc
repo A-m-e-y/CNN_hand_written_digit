@@ -7,7 +7,7 @@
 #Bank = 35, Pin name = IO_L12P_T1_MRCC_35,					Sch name = CLK100MHZ
 set_property PACKAGE_PIN E3 [get_ports clk]
 set_property IOSTANDARD LVCMOS33 [get_ports clk]
-create_clock -period 10.000 -name sys_clk_pin -waveform {0.000 5.000} -add [get_ports clk]
+create_clock -period 50.000 -name sys_clk_pin -waveform {0.000 25.000} -add [get_ports clk]
 
 # ##Bank = 15, Pin name = IO_L3P_T0_DQS_AD1P_15,				Sch name = CPU_RESET
 set_property PACKAGE_PIN C12 [get_ports rst_n]
