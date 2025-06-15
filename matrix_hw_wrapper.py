@@ -5,9 +5,17 @@ import os
 
 def matrix_mul_hw(A, B):
     """
-    A: numpy array of shape (M, K)
-    B: numpy array of shape (K, N)
-    Returns: numpy array of shape (M, N)
+    Performs matrix multiplication using hardware via a cocotb testbench.
+
+    Writes matrices A and B to 'input_buffer.txt', invokes the cocotb testbench using 'make',
+    waits for the result in 'output_buffer.txt', and reads the resulting matrix C.
+
+    Args:
+        A (np.ndarray): Input matrix of shape (M, K).
+        B (np.ndarray): Input matrix of shape (K, N).
+
+    Returns:
+        np.ndarray: Resulting matrix C of shape (M, N).
     """
     M, K = A.shape
     K2, N = B.shape

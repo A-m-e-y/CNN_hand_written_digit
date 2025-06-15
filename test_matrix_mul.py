@@ -5,6 +5,13 @@ import struct
 
 @cocotb.test()
 async def matrix_mul_test(dut):
+    """
+    Cocotb test for direct matrix multiplication hardware.
+
+    Loads matrices A and B from 'input_buffer.txt', sets up the DUT with these matrices,
+    triggers computation, waits for completion, reads the result matrix C, and writes it to 'output_buffer.txt'.
+    """
+
     cocotb.log.info("Starting matrix_mul_test...")
 
     # Start the clock with 10ns period

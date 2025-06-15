@@ -6,7 +6,13 @@ import random
 
 @cocotb.test()
 async def matrixmul_spi_test(dut):
-    """Test full SPI roundtrip: load A & B, wait for C, fetch C over SPI, compare."""
+    """
+    Cocotb test for SPI-based matrix multiplication hardware.
+
+    Loads matrices A and B from 'input_buffer.txt', sends them to the DUT over SPI,
+    waits for the multiplication to complete, triggers transmission of matrix C,
+    receives the result over SPI, and writes it to 'output_buffer.txt'.
+    """
 
     # --- Helper functions ---
     def float_to_hex(f):
@@ -106,6 +112,13 @@ async def matrixmul_spi_test(dut):
 
 # --- SPI helpers ---
 async def spi_send_word(dut, data):
+    """
+    Sends a 32-bit word to the DUT over SPI.
+
+    Args:
+        dut: The cocotb DUT object.
+        data (int): 32-bit integer to send over SPI.
+    """
     dut.cs_n.value = 0
     dut.mosi.value = 0
     dut.sclk.value = 0
@@ -126,7 +139,15 @@ async def spi_send_word(dut, data):
 
 
 async def spi_receive_word(dut):
-    """Simulate SPI master receive: clock bits and sample MISO."""
+    """
+    Receives a 32-bit word from the DUT over SPI.
+
+    Args:
+        dut: The cocotb DUT object.
+
+    Returns:
+        int: The received 32-bit integer from SPI.
+    """
     result = 0
     dut.cs_n.value = 0
     await Timer(10, units="ns")

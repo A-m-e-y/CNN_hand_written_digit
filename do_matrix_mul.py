@@ -2,6 +2,15 @@ import numpy as np
 from matrix_hw_wrapper import matrix_mul_hw  # Ensure this module exists and is in the same directory or PYTHONPATH
 
 def main():
+    """
+    Tests the hardware-accelerated matrix multiplication function.
+
+    - Generates random matrices A and B.
+    - Computes their product using hardware (via matrix_mul_hw).
+    - Prints input and output matrices.
+    - Compares hardware result to NumPy's matmul for validation.
+    - Prints whether the results match within a tolerance.
+    """
     # Define test matrices A (M x K) and B (K x N)
     M, K, N = 10, 10, 10
     A = np.random.uniform(-2, 2, size=(M, K)).astype(np.float32)

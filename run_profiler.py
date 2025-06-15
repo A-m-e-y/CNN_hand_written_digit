@@ -9,6 +9,11 @@ IMAGE_PATH = "../Generate_Modified_Images/Dataset_24x24/0/0.jpg"
 from CNN_digit_recognizer import *
 
 def profile_infer():
+    """
+    Profiles the 'infer' function using cProfile.
+
+    Runs inference on the specified IMAGE_PATH and saves profiling results to 'infer_profile.prof'.
+    """
     cProfile.runctx(
         'infer(IMAGE_PATH)',
         globals(),

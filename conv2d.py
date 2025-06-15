@@ -4,7 +4,29 @@ from matrix_hw_wrapper import matrix_mul_hw
 MODE = "infer"
 
 class Conv2D:
+    """
+    2D Convolutional layer supporting forward and backward passes.
+
+    Attributes:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels (filters).
+        kernel_size (tuple): Size of the convolutional kernel.
+        stride (int): Stride of the convolution.
+        padding (int): Zero-padding added to both sides of input.
+        weights (np.ndarray): Convolutional kernels.
+        biases (np.ndarray): Bias terms for each filter.
+    """
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
+        """
+        Initializes the Conv2D layer with random weights and zero biases.
+
+        Args:
+            in_channels (int): Number of input channels.
+            out_channels (int): Number of output channels (filters).
+            kernel_size (int or tuple): Size of the convolutional kernel.
+            stride (int, optional): Stride of the convolution. Default is 1.
+            padding (int, optional): Zero-padding added to both sides of input. Default is 0.
+        """
         if isinstance(kernel_size, int):
             self.kernel_size = (kernel_size, kernel_size)
         else:
@@ -24,6 +46,15 @@ class Conv2D:
         self.last_input = None
 
     def _pad_input(self, x):
+        """
+        Pads the input tensor with zeros if padding is specified.
+
+        Args:
+            x (np.ndarray): Input tensor of shape (batch_size, in_channels, height, width).
+
+        Returns:
+            np.ndarray: Padded input tensor.
+        """
         if self.padding == 0:
             return x
         return np.pad(x, ((0, 0), (0, 0),
@@ -32,24 +63,40 @@ class Conv2D:
 
     def matrix_mul_sw(self, A, B):
         """
-        A: (M, K)  -> all image patches reshaped
-        B: (K, N)  -> all kernels reshaped
-        Returns: (M, N)  -> flattened output feature maps
+        Performs matrix multiplication in software (numpy dot).
+
+        Args:
+            A (np.ndarray): Matrix of shape (M, K), flattened image patches.
+            B (np.ndarray): Matrix of shape (K, N), flattened kernels.
+
+        Returns:
+            np.ndarray: Resulting matrix of shape (M, N), flattened output feature maps.
         """
         print(f"Matrix Mul SW: A shape: {A.shape}, B shape: {B.shape}")
         return np.dot(A, B)
 
     def matrix_add_bias(self, C, bias):
         """
-        C: (M, N)
-        bias: (N,)
-        Adds bias to each row of C
+        Adds bias to each row of the matrix C.
+
+        Args:
+            C (np.ndarray): Matrix of shape (M, N).
+            bias (np.ndarray): Bias vector of shape (N,).
+
+        Returns:
+            np.ndarray: Matrix with bias added to each row.
         """
         return C + bias
 
     def forward(self, x):
         """
-        x shape: (batch_size, in_channels, height, width)
+        Performs the forward pass of the convolutional layer.
+
+        Args:
+            x (np.ndarray): Input tensor of shape (batch_size, in_channels, height, width).
+
+        Returns:
+            np.ndarray: Output tensor after convolution and bias addition.
         """
         self.last_input = x
         batch_size, _, in_h, in_w = x.shape
@@ -90,7 +137,14 @@ class Conv2D:
 
     def backward(self, d_out, learning_rate):
         """
-        d_out shape: same as output of forward
+        Performs the backward pass, computing gradients and updating weights.
+
+        Args:
+            d_out (np.ndarray): Gradient of the loss with respect to the output.
+            learning_rate (float): Learning rate for parameter updates.
+
+        Returns:
+            np.ndarray: Gradient of the loss with respect to the input.
         """
         x = self.last_input
         batch_size, _, in_h, in_w = x.shape

@@ -17,6 +17,15 @@ LR = 0.01
 BATCH_SIZE = 1
 
 def load_data(data_dir):
+    """
+    Loads image data and labels from the specified directory.
+
+    Args:
+        data_dir (str): Path to the dataset directory. Expects subfolders named 0-9, each containing .jpg images.
+
+    Returns:
+        tuple: (X, y) where X is a numpy array of shape (num_samples, 1, IMG_SIZE, IMG_SIZE) and y is a numpy array of labels.
+    """
     X = []
     y = []
     for label in range(NUM_CLASSES):
@@ -41,16 +50,51 @@ def load_data(data_dir):
     return X, y
 
 def one_hot(y, num_classes=10):
+    """
+    Converts integer labels to one-hot encoded vectors.
+
+    Args:
+        y (array-like): Array of integer labels.
+        num_classes (int): Number of classes for one-hot encoding.
+
+    Returns:
+        np.ndarray: One-hot encoded label matrix.
+    """
     return np.eye(num_classes)[y]
 
 def cross_entropy_loss(pred, label):
+    """
+    Computes the cross-entropy loss between predictions and true labels.
+
+    Args:
+        pred (np.ndarray): Predicted probabilities (batch_size, num_classes).
+        label (np.ndarray): One-hot encoded true labels (batch_size, num_classes).
+
+    Returns:
+        float: Cross-entropy loss value.
+    """
     loss = -np.sum(label * np.log(pred + 1e-8)) / pred.shape[0]
     return loss
 
 def accuracy(pred, label):
+    """
+    Calculates the classification accuracy.
+
+    Args:
+        pred (np.ndarray): Predicted probabilities (batch_size, num_classes).
+        label (np.ndarray): One-hot encoded true labels (batch_size, num_classes).
+
+    Returns:
+        float: Accuracy as a fraction of correct predictions.
+    """
     return np.mean(np.argmax(pred, axis=1) == np.argmax(label, axis=1))
 
 def train():
+    """
+    Trains the SimpleCNN model on the dataset.
+
+    Loads data, trains for a specified number of epochs, prints loss and accuracy, and saves the trained model.
+    """
     print("Loading training data...")
     X, y = load_data(DATA_DIR)
     y_onehot = one_hot(y)
@@ -81,6 +125,12 @@ def train():
     print(f"Training completed. Model saved to '{MODEL_FILE}'.")
 
 def infer(image_path):
+    """
+    Loads a trained model and predicts the class of a given image.
+
+    Args:
+        image_path (str): Path to the image file to be classified.
+    """
     print(f"Loading model from '{MODEL_FILE}'...")
     model = SimpleCNN()
     model.load(MODEL_FILE)
