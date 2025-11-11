@@ -166,13 +166,13 @@ module MatrixMulEngine_BRAM #(
                                 // Ready to start dot product
                                 prefetch_idx <= 0;
                                 // Debug dump of prefetched buffers for first/last row
-                                if (row_idx == 0 || row_idx == M_val-1) begin
-                                    integer dbg_i;
-                                    // $display("BRAM_Engine: Prefetch complete for row=%0d col=%0d", row_idx, col_idx);
-                                    for (dbg_i = 0; dbg_i < K_val; dbg_i = dbg_i + 1) begin
-                                        // $display("  row_buf[%0d]=%h col_buf[%0d]=%h", dbg_i, row_buf[dbg_i], dbg_i, col_buf[dbg_i]);
-                                    end
-                                end
+                                // if (row_idx == 0 || row_idx == M_val-1) begin
+                                //     // integer dbg_i;
+                                //     // // $display("BRAM_Engine: Prefetch complete for row=%0d col=%0d", row_idx, col_idx);
+                                //     // for (dbg_i = 0; dbg_i < K_val; dbg_i = dbg_i + 1) begin
+                                //     //     // $display("  row_buf[%0d]=%h col_buf[%0d]=%h", dbg_i, row_buf[dbg_i], dbg_i, col_buf[dbg_i]);
+                                    // end
+                                // end
                                 dpe_start <= 1;
                                 state <= START_DPE;
                             end
