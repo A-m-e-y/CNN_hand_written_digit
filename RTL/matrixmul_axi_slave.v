@@ -381,13 +381,13 @@ module matrixmul_axi_slave #(
             mem_write_trigger_d <= mem_write_trigger;
             mem_read_trigger_d <= mem_read_trigger;
             
-            // Detect write to mem_wdata_reg (address 0x18)
+            // Detect write to mem_wdata_reg (address 0x18) - triggers BRAM write
             if (slv_reg_wren && axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 6'h06) begin
                 mem_write_trigger <= ~mem_write_trigger;
             end
             
-            // Detect read from mem_rdata_reg (address 0x1C)
-            if (slv_reg_rden && axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 6'h07) begin
+            // Detect write to mem_addr_reg (address 0x14) - triggers BRAM read address update
+            if (slv_reg_wren && axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 6'h05) begin
                 mem_read_trigger <= ~mem_read_trigger;
             end
         end
@@ -414,21 +414,28 @@ module matrixmul_axi_slave #(
             mem_b_we <= 1'b0;
             mem_c_we <= 1'b0;
             
+            // Update address when mem_addr_reg is written (for subsequent read or write)
+            if (mem_read_pulse) begin
+                case (mem_sel)
+                    2'b00: mem_a_addr <= mem_addr_reg[ADDR_A_BITS-1:0];
+                    2'b01: mem_b_addr <= mem_addr_reg[ADDR_B_BITS-1:0];
+                    2'b10: mem_c_addr <= mem_addr_reg[ADDR_C_BITS-1:0];
+                endcase
+            end
+            
+            // Perform write when mem_wdata_reg is written
             if (mem_write_pulse) begin
                 case (mem_sel)
                     2'b00: begin // Matrix A
                         mem_a_we <= 1'b1;
-                        mem_a_addr <= mem_addr_reg[ADDR_A_BITS-1:0];
                         mem_a_wdata <= mem_wdata_reg;
                     end
                     2'b01: begin // Matrix B
                         mem_b_we <= 1'b1;
-                        mem_b_addr <= mem_addr_reg[ADDR_B_BITS-1:0];
                         mem_b_wdata <= mem_wdata_reg;
                     end
                     2'b10: begin // Matrix C
                         mem_c_we <= 1'b1;
-                        mem_c_addr <= mem_addr_reg[ADDR_C_BITS-1:0];
                         mem_c_wdata <= mem_wdata_reg;
                     end
                 endcase
@@ -436,26 +443,13 @@ module matrixmul_axi_slave #(
         end
     end
     
-    // Memory read control and data capture
+    // Memory read data capture
     always @(posedge S_AXI_ACLK) begin
         if (S_AXI_ARESETN == 1'b0) begin
             mem_rdata_reg <= 0;
         end else begin
-            if (mem_read_pulse) begin
-                case (mem_sel)
-                    2'b00: begin // Matrix A
-                        mem_a_addr <= mem_addr_reg[ADDR_A_BITS-1:0];
-                    end
-                    2'b01: begin // Matrix B
-                        mem_b_addr <= mem_addr_reg[ADDR_B_BITS-1:0];
-                    end
-                    2'b10: begin // Matrix C
-                        mem_c_addr <= mem_addr_reg[ADDR_C_BITS-1:0];
-                    end
-                endcase
-            end
-            
             // Capture read data (1 cycle delay for BRAM)
+            // This continuously updates to reflect current BRAM output
             case (mem_sel)
                 2'b00: mem_rdata_reg <= mem_a_rdata;
                 2'b01: mem_rdata_reg <= mem_b_rdata;

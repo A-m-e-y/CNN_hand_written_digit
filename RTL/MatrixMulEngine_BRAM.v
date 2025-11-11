@@ -35,13 +35,15 @@ module MatrixMulEngine_BRAM #(
     output reg [31:0] matrix_C_wdata
 );
 
+    // New FSM reworked to prefetch entire row of A and column of B into local buffers
+    // before starting DotProductEngine, restoring original combinational access semantics.
     reg [2:0] state;
-    localparam IDLE = 3'b000,
-               LOAD_A = 3'b001,
-               LOAD_B = 3'b010,
-               COMPUTE = 3'b011,
-               WAIT_DPE = 3'b100,
-               STORE = 3'b101;
+    localparam IDLE        = 3'b000,
+               PREFETCH_A  = 3'b001,
+               PREFETCH_B  = 3'b010,
+               START_DPE   = 3'b011,
+               WAIT_DPE    = 3'b100,
+               STORE       = 3'b101;
 
     reg [ADDR_M_BITS-1:0] row_idx;
     reg [ADDR_N_BITS-1:0] col_idx;
@@ -50,18 +52,26 @@ module MatrixMulEngine_BRAM #(
     wire dpe_done;
     wire [31:0] dpe_result;
     wire [ADDR_WIDTH-1:0] dpe_patch_addr, dpe_filter_addr;
-    reg [31:0] dpe_patch_data, dpe_filter_data;
 
-    wire [ADDR_A_BITS-1:0] a_index = row_idx * K_val + dpe_patch_addr;
-    wire [ADDR_B_BITS-1:0] b_index = dpe_filter_addr * N_val + col_idx;
+    // Prefetch buffers for one row of A and one column of B
+    reg [31:0] row_buf [0:MAX_K-1];
+    reg [31:0] col_buf [0:MAX_K-1];
+    reg [ADDR_K_BITS:0] prefetch_idx; // counts 0..K_val-1
+    // Prefetch phase encoding: 0=ISSUE address, 1=WAIT (BRAM latency), 2=CAPTURE data
+    reg [1:0] prefetch_phase;
+
+    // Indices for BRAM addressing during prefetch
+    wire [ADDR_A_BITS-1:0] a_prefetch_addr = row_idx * K_val + prefetch_idx;
+    wire [ADDR_B_BITS-1:0] b_prefetch_addr = prefetch_idx * N_val + col_idx;
+
+    // Address for writing C
     wire [ADDR_C_BITS-1:0] c_index = row_idx * N_val + col_idx;
 
+    // During computation (DotProductEngine running), supply data from buffers
+    wire [31:0] dpe_patch_data = row_buf[dpe_patch_addr];
+    wire [31:0] dpe_filter_data = col_buf[dpe_filter_addr];
+
     wire [ADDR_WIDTH-1:0] vec_len_ext = K_val;
-    
-    // Pipeline registers for BRAM reads
-    reg [ADDR_A_BITS-1:0] matrix_A_addr_d;
-    reg [ADDR_B_BITS-1:0] matrix_B_addr_d;
-    reg data_valid;
 
     DotProductEngine #(
         .ADDR_WIDTH(ADDR_WIDTH)
@@ -78,25 +88,7 @@ module MatrixMulEngine_BRAM #(
         .filter_addr(dpe_filter_addr)
     );
 
-    // BRAM read logic with 1-cycle delay handling
-    always @(posedge clk) begin
-        matrix_A_addr_d <= matrix_A_addr;
-        matrix_B_addr_d <= matrix_B_addr;
-        
-        if (state == LOAD_A || state == LOAD_B || state == COMPUTE || state == WAIT_DPE) begin
-            data_valid <= 1'b1;
-        end else begin
-            data_valid <= 1'b0;
-        end
-    end
-    
-    // Register BRAM outputs for DPE
-    always @(posedge clk) begin
-        if (data_valid) begin
-            dpe_patch_data <= matrix_A_rdata;
-            dpe_filter_data <= matrix_B_rdata;
-        end
-    end
+    // Prefetch FSM phases handled in main always block below.
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -115,40 +107,89 @@ module MatrixMulEngine_BRAM #(
                 IDLE: begin
                     matrix_C_we <= 0;
                     if (start) begin
-                        done <= 0;  // Clear done only when starting new computation
+                        done <= 0;
                         row_idx <= 0;
                         col_idx <= 0;
+                        prefetch_idx <= 0;
+                        prefetch_phase <= 0;
                         matrix_A_addr <= 0;
                         matrix_B_addr <= 0;
-                        state <= LOAD_A;
+                        state <= PREFETCH_A;
                     end
                 end
 
-                LOAD_A: begin
-                    // Pre-load first A address
-                    matrix_A_addr <= a_index;
-                    state <= LOAD_B;
+                // Prefetch entire row of A
+                PREFETCH_A: begin
+                    matrix_C_we <= 0;
+                    case (prefetch_phase)
+                        2'd0: begin
+                            // ISSUE address
+                            matrix_A_addr <= a_prefetch_addr;
+                            prefetch_phase <= 2'd1; // WAIT
+                        end
+                        2'd1: begin
+                            // WAIT one cycle for BRAM data to become valid
+                            prefetch_phase <= 2'd2; // CAPTURE next
+                        end
+                        2'd2: begin
+                            // CAPTURE data
+                            row_buf[prefetch_idx] <= matrix_A_rdata;
+                            prefetch_phase <= 2'd0; // back to ISSUE for next element
+                            if (prefetch_idx < K_val - 1) begin
+                                prefetch_idx <= prefetch_idx + 1;
+                            end else begin
+                                // Move to column prefetch
+                                prefetch_idx <= 0;
+                                prefetch_phase <= 2'd0;
+                                state <= PREFETCH_B;
+                            end
+                        end
+                    endcase
                 end
 
-                LOAD_B: begin
-                    // Pre-load first B address
-                    matrix_B_addr <= b_index;
-                    state <= COMPUTE;
+                // Prefetch entire column of B
+                PREFETCH_B: begin
+                    case (prefetch_phase)
+                        2'd0: begin
+                            matrix_B_addr <= b_prefetch_addr; // ISSUE
+                            prefetch_phase <= 2'd1; // WAIT
+                        end
+                        2'd1: begin
+                            prefetch_phase <= 2'd2; // CAPTURE next
+                        end
+                        2'd2: begin
+                            col_buf[prefetch_idx] <= matrix_B_rdata; // CAPTURE
+                            prefetch_phase <= 2'd0; // back to ISSUE
+                            if (prefetch_idx < K_val - 1) begin
+                                prefetch_idx <= prefetch_idx + 1;
+                            end else begin
+                                // Ready to start dot product
+                                prefetch_idx <= 0;
+                                // Debug dump of prefetched buffers for first/last row
+                                if (row_idx == 0 || row_idx == M_val-1) begin
+                                    integer dbg_i;
+                                    // $display("BRAM_Engine: Prefetch complete for row=%0d col=%0d", row_idx, col_idx);
+                                    for (dbg_i = 0; dbg_i < K_val; dbg_i = dbg_i + 1) begin
+                                        // $display("  row_buf[%0d]=%h col_buf[%0d]=%h", dbg_i, row_buf[dbg_i], dbg_i, col_buf[dbg_i]);
+                                    end
+                                end
+                                dpe_start <= 1;
+                                state <= START_DPE;
+                            end
+                        end
+                    endcase
                 end
 
-                COMPUTE: begin
-                    // Start DPE after data is available
-                    dpe_start <= 1;
+                START_DPE: begin
+                    // Pulse start only one cycle
+                    dpe_start <= 0;
+                    if (row_idx == 0 || row_idx == 3) begin
+                        // $display("BRAM_Engine: Starting DPE for C[%0d,%0d]", row_idx, col_idx);
+                    end
                     state <= WAIT_DPE;
                 end
 
                 WAIT_DPE: begin
-                    dpe_start <= 0;
-                    
-                    // Update addresses as DPE requests them
-                    matrix_A_addr <= a_index;
-                    matrix_B_addr <= b_index;
-                    
                     if (dpe_done) begin
                         state <= STORE;
                     end
@@ -158,17 +199,23 @@ module MatrixMulEngine_BRAM #(
                     matrix_C_we <= 1;
                     matrix_C_addr <= c_index;
                     matrix_C_wdata <= dpe_result;
-                    
+                    if (row_idx == 0 || row_idx == 3) begin
+                        // $display("BRAM_Engine: Writing C[%0d,%0d] = 0x%08h", row_idx, col_idx, dpe_result);
+                    end
+                    // Prepare next element
                     if (col_idx < N_val - 1) begin
                         col_idx <= col_idx + 1;
-                        state <= LOAD_A;
+                        prefetch_idx <= 0;
+                        prefetch_phase <= 0;
+                        state <= PREFETCH_A;
                     end else if (row_idx < M_val - 1) begin
                         row_idx <= row_idx + 1;
                         col_idx <= 0;
-                        state <= LOAD_A;
+                        prefetch_idx <= 0;
+                        prefetch_phase <= 0;
+                        state <= PREFETCH_A;
                     end else begin
                         done <= 1;
-                        matrix_C_we <= 0;
                         state <= IDLE;
                     end
                 end

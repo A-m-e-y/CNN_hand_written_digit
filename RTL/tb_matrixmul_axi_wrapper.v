@@ -84,18 +84,28 @@ module tb_matrixmul_axi_wrapper();
     reg [31:0] matrix_C_actual [0:15];
     
     integer i;
+    integer r, c; // loop vars for expected computation
     
     // Initialize test matrices
     initial begin
-        // Matrix A: Identity
+        // Matrix A: Row-reversal permutation matrix (4x4)
+        //   [0 0 0 1]
+        //   [0 0 1 0]
+        //   [0 1 0 0]
+        //   [1 0 0 0]
         for (i = 0; i < 16; i = i + 1) begin
-            if (i % 5 == 0)  // Diagonal elements
-                matrix_A[i] = 32'h3F800000; // 1.0 in IEEE 754
-            else
-                matrix_A[i] = 32'h00000000; // 0.0
+            matrix_A[i] = 32'h00000000; // 0.0
         end
-        
-        // Matrix B: Sequential values
+        matrix_A[3]  = 32'h3F800000; // 1.0
+        matrix_A[6]  = 32'h3F800000; // 1.0
+        matrix_A[9]  = 32'h3F800000; // 1.0
+        matrix_A[12] = 32'h3F800000; // 1.0
+    
+        // Matrix B: Another diverse 4x4
+        //   [1  0  2  0]
+        //   [0  3  0  4]
+        //   [5  0  6  0]
+        //   [0  7  0  8]
         matrix_B[0]  = 32'h3F800000; // 1.0
         matrix_B[1]  = 32'h40000000; // 2.0
         matrix_B[2]  = 32'h40400000; // 3.0
@@ -113,9 +123,26 @@ module tb_matrixmul_axi_wrapper();
         matrix_B[14] = 32'h41700000; // 15.0
         matrix_B[15] = 32'h41800000; // 16.0
         
-        // Expected result: C = A * B = I * B = B
-        for (i = 0; i < 16; i = i + 1) begin
-            matrix_C_expected[i] = matrix_B[i];
+        // Compute expected C = A * B (row reversal): C[r,:] = B[(3-r),:]
+        for (r = 0; r < 4; r = r + 1) begin
+            for (c = 0; c < 4; c = c + 1) begin
+                matrix_C_expected[r*4 + c] = matrix_B[(3 - r)*4 + c];
+            end
+        end
+
+        // Print matrices (hex)
+        $display("\n=== Matrices (hex) ===");
+        $display("Matrix A:");
+        for (i = 0; i < 4; i = i + 1) begin
+            $display("  %h %h %h %h", matrix_A[i*4+0], matrix_A[i*4+1], matrix_A[i*4+2], matrix_A[i*4+3]);
+        end
+        $display("Matrix B:");
+        for (i = 0; i < 4; i = i + 1) begin
+            $display("  %h %h %h %h", matrix_B[i*4+0], matrix_B[i*4+1], matrix_B[i*4+2], matrix_B[i*4+3]);
+        end
+        $display("Matrix C expected = A*B:");
+        for (i = 0; i < 4; i = i + 1) begin
+            $display("  %h %h %h %h", matrix_C_expected[i*4+0], matrix_C_expected[i*4+1], matrix_C_expected[i*4+2], matrix_C_expected[i*4+3]);
         end
     end
 
@@ -125,7 +152,7 @@ module tb_matrixmul_axi_wrapper();
         input [C_S00_AXI_DATA_WIDTH-1:0] data;
         integer timeout_count;
         begin
-            $display("Time: %0t - AXI Write: addr=0x%02h, data=0x%08h", $time, addr, data);
+            // $display("Time: %0t - AXI Write: addr=0x%02h, data=0x%08h", $time, addr, data);
             @(posedge s00_axi_aclk);
             s00_axi_awaddr = addr;
             s00_axi_awvalid = 1;
@@ -147,13 +174,14 @@ module tb_matrixmul_axi_wrapper();
                     $finish;
                 end
             end
-            $display("Time: %0t - Write response received (bvalid=%b)", $time, s00_axi_bvalid);
+            // $display("Time: %0t - Write response received (bvalid=%b)", $time, s00_axi_bvalid);
             
             // Now de-assert valid and ready signals
             s00_axi_awvalid = 0;
             s00_axi_wvalid = 0;
             s00_axi_bready = 0;
             @(posedge s00_axi_aclk);
+            @(posedge s00_axi_aclk); // Add extra delay for slave to recover
         end
     endtask
 
@@ -187,6 +215,7 @@ module tb_matrixmul_axi_wrapper();
             s00_axi_arvalid = 0;
             s00_axi_rready = 0;
             @(posedge s00_axi_aclk);
+            @(posedge s00_axi_aclk); // Add extra delay
         end
     endtask
 
@@ -196,7 +225,10 @@ module tb_matrixmul_axi_wrapper();
     integer errors;
     
     initial begin
-        $display("TB STARTED - Time: %0t", $time);
+    // $display("TB STARTED - Time: %0t", $time);
+        $dumpfile("tb_axi_wrapper.vcd");
+        $dumpvars(0, tb_matrixmul_axi_wrapper);
+        
         // Initialize signals
         s00_axi_aresetn = 0;
         s00_axi_awaddr = 0;
@@ -217,25 +249,25 @@ module tb_matrixmul_axi_wrapper();
         s00_axi_aresetn = 1;
         #(CLK_PERIOD*5);
         
-        $display("=== MatrixMul AXI Wrapper Testbench ===");
-        $display("Time: %0t - Starting test...", $time);
+    // $display("=== MatrixMul AXI Wrapper Testbench ===");
+    // $display("Time: %0t - Starting test...", $time);
         
         // 1. Set dimensions (M=4, K=4, N=4)
-        $display("Time: %0t - Setting dimensions M=4, K=4, N=4", $time);
+    // $display("Time: %0t - Setting dimensions M=4, K=4, N=4", $time);
         axi_write(8'h08, 32'd4); // M dimension
         axi_write(8'h0C, 32'd4); // K dimension
         axi_write(8'h10, 32'd4); // N dimension
         
         // Read back dimensions to verify
         axi_read(8'h08, read_data);
-        $display("Time: %0t - Read back M dimension: %0d", $time, read_data);
+    // $display("Time: %0t - Read back M dimension: %0d", $time, read_data);
         axi_read(8'h0C, read_data);
-        $display("Time: %0t - Read back K dimension: %0d", $time, read_data);
+    // $display("Time: %0t - Read back K dimension: %0d", $time, read_data);
         axi_read(8'h10, read_data);
-        $display("Time: %0t - Read back N dimension: %0d", $time, read_data);
+    // $display("Time: %0t - Read back N dimension: %0d", $time, read_data);
         
         // 2. Load Matrix A (select mem A)
-        $display("Time: %0t - Loading Matrix A", $time);
+    // $display("Time: %0t - Loading Matrix A", $time);
         axi_write(8'h00, 32'h00000000); // Control: select Matrix A
         for (i = 0; i < 16; i = i + 1) begin
             axi_write(8'h14, i); // Address
@@ -246,41 +278,83 @@ module tb_matrixmul_axi_wrapper();
         axi_write(8'h14, 0); // Address 0
         #(CLK_PERIOD*5); // Wait for BRAM
         axi_read(8'h1C, read_data); // Read data
-        $display("Time: %0t - Matrix A[0] readback: 0x%08h (expected 0x%08h)", $time, read_data, matrix_A[0]);
+    // $display("Time: %0t - Matrix A[0] readback: 0x%08h (expected 0x%08h) %s", $time, read_data, matrix_A[0], 
+    //          (read_data == matrix_A[0]) ? "PASS" : "FAIL");
+        
+        // Read back A[5] (should be 1.0, diagonal element)
+        axi_write(8'h14, 5);
+        #(CLK_PERIOD*5);
+        axi_read(8'h1C, read_data);
+    // $display("Time: %0t - Matrix A[5] readback: 0x%08h (expected 0x%08h) %s", $time, read_data, matrix_A[5],
+    //          (read_data == matrix_A[5]) ? "PASS" : "FAIL");
+        
+        // Read back A[1] (should be 0.0, off-diagonal)
+        axi_write(8'h14, 1);
+        #(CLK_PERIOD*5);
+        axi_read(8'h1C, read_data);
+    // $display("Time: %0t - Matrix A[1] readback: 0x%08h (expected 0x%08h) %s", $time, read_data, matrix_A[1],
+    //          (read_data == matrix_A[1]) ? "PASS" : "FAIL");
         
         // 3. Load Matrix B (select mem B)
-        $display("Time: %0t - Loading Matrix B", $time);
+    // $display("Time: %0t - Loading Matrix B", $time);
         axi_write(8'h00, 32'h00000004); // Control: select Matrix B
         for (i = 0; i < 16; i = i + 1) begin
             axi_write(8'h14, i); // Address
             axi_write(8'h18, matrix_B[i]); // Data
         end
         
-        // 4. Start computation
-        $display("Time: %0t - Starting computation", $time);
-        axi_read(8'h04, status);
-        $display("Time: %0t - Status BEFORE start: 0x%08h (done=%b, busy=%b)", $time, status, status[1], status[2]);
-        axi_write(8'h00, 32'h00000001); // Control: START bit
-        axi_read(8'h04, status);
-        $display("Time: %0t - Status AFTER start: 0x%08h (done=%b, busy=%b)", $time, status, status[1], status[2]);
+        // Verify Matrix B was written correctly
+        axi_write(8'h14, 0);
+        #(CLK_PERIOD*5);
+        axi_read(8'h1C, read_data);
+    // $display("Time: %0t - Matrix B[0] readback: 0x%08h (expected 0x%08h) %s", $time, read_data, matrix_B[0],
+    //          (read_data == matrix_B[0]) ? "PASS" : "FAIL");
+        axi_write(8'h14, 5);
+        #(CLK_PERIOD*5);
+        axi_read(8'h1C, read_data);
+    // $display("Time: %0t - Matrix B[5] readback: 0x%08h (expected 0x%08h) %s", $time, read_data, matrix_B[5],
+    //          (read_data == matrix_B[5]) ? "PASS" : "FAIL");
+        axi_write(8'h14, 15);
+        #(CLK_PERIOD*5);
+        axi_read(8'h1C, read_data);
+    // $display("Time: %0t - Matrix B[15] readback: 0x%08h (expected 0x%08h) %s", $time, read_data, matrix_B[15],
+    //          (read_data == matrix_B[15]) ? "PASS" : "FAIL");
         
-        // 5. Poll for completion
-        $display("Time: %0t - Waiting for completion...", $time);
-        status = 0;
-        while (status[1] == 0) begin  // Check engine_done bit (bit 1)
-            axi_read(8'h04, status); // Read status register
-            $display("Time: %0t - Status: 0x%08h (done=%b, busy=%b)", $time, status, status[1], status[2]);
-            #(CLK_PERIOD*10);
-        end
-        $display("Time: %0t - Computation done!", $time);
-        
-        // 6. Read result Matrix C
-        $display("Time: %0t - Reading result Matrix C", $time);
+        // Clear Matrix C before computation (initialize to zero)
+    // $display("Time: %0t - Clearing Matrix C", $time);
         axi_write(8'h00, 32'h00000008); // Control: select Matrix C
         for (i = 0; i < 16; i = i + 1) begin
             axi_write(8'h14, i); // Address
+            axi_write(8'h18, 32'h00000000); // Write zero
+        end
+        
+        // 4. Start computation
+    // $display("Time: %0t - Starting computation", $time);
+        axi_read(8'h04, status);
+    // $display("Time: %0t - Status BEFORE start: 0x%08h (done=%b, busy=%b)", $time, status, status[1], status[2]);
+        axi_write(8'h00, 32'h00000001); // Control: START bit
+        axi_read(8'h04, status);
+    // $display("Time: %0t - Status AFTER start: 0x%08h (done=%b, busy=%b)", $time, status, status[1], status[2]);
+        
+        // 5. Poll for completion
+    // $display("Time: %0t - Waiting for completion...", $time);
+        status = 0;
+        while (status[1] == 0) begin  // Check engine_done bit (bit 1)
+            axi_read(8'h04, status); // Read status register
+            // $display("Time: %0t - Status: 0x%08h (done=%b, busy=%b)", $time, status, status[1], status[2]);
+            #(CLK_PERIOD*10);
+        end
+    // $display("Time: %0t - Computation done!", $time);
+        
+        // 6. Read result Matrix C
+    // $display("Time: %0t - Reading result Matrix C", $time);
+        axi_write(8'h00, 32'h00000008); // Control: select Matrix C
+        for (i = 0; i < 16; i = i + 1) begin
+            axi_write(8'h14, i); // Address
+            // $display("  Setting address to %0d", i);
             #(CLK_PERIOD*2); // Wait for BRAM read latency
             axi_read(8'h1C, read_data); // Read data
+            // $display("  Read from address %0d: 0x%08h", i, read_data);
             matrix_C_actual[i] = read_data;
             
             // Compare with expected
@@ -291,8 +365,8 @@ module tb_matrixmul_axi_wrapper();
         end
         
         // 7. Display results
-        $display("\n=== Test Results ===");
-        $display("Matrix C (Result):");
+    $display("\n=== Test Results ===");
+    $display("Matrix C (Actual):");
         for (i = 0; i < 4; i = i + 1) begin
             $display("  %h %h %h %h", 
                 matrix_C_actual[i*4+0], matrix_C_actual[i*4+1],
@@ -303,6 +377,10 @@ module tb_matrixmul_axi_wrapper();
             $display("\n*** TEST PASSED ***");
         end else begin
             $display("\n*** TEST FAILED with %0d errors ***", errors);
+            $display("Matrix C expected (for reference):");
+            for (i = 0; i < 4; i = i + 1) begin
+                $display("  %h %h %h %h", matrix_C_expected[i*4+0], matrix_C_expected[i*4+1], matrix_C_expected[i*4+2], matrix_C_expected[i*4+3]);
+            end
         end
         
         #(CLK_PERIOD*100);
