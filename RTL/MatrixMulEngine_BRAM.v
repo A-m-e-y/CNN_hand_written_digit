@@ -113,9 +113,9 @@ module MatrixMulEngine_BRAM #(
         end else begin
             case (state)
                 IDLE: begin
-                    done <= 0;
                     matrix_C_we <= 0;
                     if (start) begin
+                        done <= 0;  // Clear done only when starting new computation
                         row_idx <= 0;
                         col_idx <= 0;
                         matrix_A_addr <= 0;

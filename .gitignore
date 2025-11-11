@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 
 # Amey
+*.out
+*.vvp
 *.txt
 archive*.zip
 *.tar.gz
